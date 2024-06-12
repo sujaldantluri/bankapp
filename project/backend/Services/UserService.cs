@@ -1,9 +1,11 @@
+using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using System.Security.Cryptography;
 using System.Text;
-using MyBankApp.Data;
-using MyBankApp.Models;
+using MyBankApp.Data; // Adjust namespace as needed
+using MyBankApp.Models; // Adjust namespace as needed
+using Microsoft.Extensions.Logging;
 namespace MyBankApp.Services;
 
 public class UserService : IUserService
@@ -19,57 +21,56 @@ public class UserService : IUserService
 
     public async Task<User> Authenticate(string username, string password)
     {
-        try
+        var user = await _context.Users.SingleOrDefaultAsync(x => x.Username == username);
+        if (user == null)
         {
-            _logger.LogDebug("Authenticating user: {Username}", username);
-            var user = await _context.Users.SingleOrDefaultAsync(x => x.Username == username);
-            if (user == null || !VerifyPasswordHash(password, user.PasswordHash))
-                return null;
+            _logger.LogWarning($"User '{username}' not found.");
+            return null;
+        }
 
-            return user;
-        }
-        catch (Exception ex)
+        _logger.LogInformation($"User '{username}' found. Verifying password.");
+
+        if (!VerifyPasswordHash(password, user.PasswordHash, user.PasswordSalt))
         {
-            _logger.LogError(ex, "Error during authentication.");
-            throw;
+            _logger.LogWarning($"Password for user '{username}' does not match.");
+            return null;
         }
+
+        _logger.LogInformation($"Password for user '{username}' verified successfully.");
+        return user;
     }
 
     public async Task<User> Register(string username, string password)
     {
-        try
-        {
-            _logger.LogDebug("Registering user: {Username}", username);
-            if (await _context.Users.AnyAsync(x => x.Username == username))
-                return null;
+        if (await _context.Users.AnyAsync(x => x.Username == username))
+            return null;
 
-            var user = new User { Username = username, PasswordHash = CreatePasswordHash(password) };
-            _context.Users.Add(user);
-            await _context.SaveChangesAsync();
-            return user;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error during registration.");
-            throw;
-        }
+        byte[] passwordHash, passwordSalt;
+        CreatePasswordHash(password, out passwordHash, out passwordSalt);
+
+        var user = new User { Username = username, PasswordHash = Convert.ToBase64String(passwordHash), PasswordSalt = passwordSalt };
+        _context.Users.Add(user);
+        await _context.SaveChangesAsync();
+        return user;
     }
 
-    private string CreatePasswordHash(string password)
+    private void CreatePasswordHash(string password, out byte[] passwordHash, out byte[] passwordSalt)
     {
         using (var hmac = new HMACSHA512())
         {
-            var hash = hmac.ComputeHash(Encoding.UTF8.GetBytes(password));
-            return Convert.ToBase64String(hash);
+            passwordSalt = hmac.Key;
+            passwordHash = hmac.ComputeHash(Encoding.UTF8.GetBytes(password));
         }
     }
 
-    private bool VerifyPasswordHash(string password, string storedHash)
+    private bool VerifyPasswordHash(string password, string storedHash, byte[] storedSalt)
     {
-        using (var hmac = new HMACSHA512())
+        using (var hmac = new HMACSHA512(storedSalt))
         {
-            var hash = hmac.ComputeHash(Encoding.UTF8.GetBytes(password));
-            return Convert.ToBase64String(hash) == storedHash;
+            var computedHash = hmac.ComputeHash(Encoding.UTF8.GetBytes(password));
+            _logger.LogInformation($"Computed hash: {Convert.ToBase64String(computedHash)}");
+            _logger.LogInformation($"Stored hash: {storedHash}");
+            return Convert.ToBase64String(computedHash) == storedHash;
         }
     }
 }
