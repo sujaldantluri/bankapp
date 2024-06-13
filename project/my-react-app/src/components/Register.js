@@ -1,52 +1,49 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
+import './Login.css'; // Reusing the same styles as Login for consistency
 
-const Register = () => {
-    const [username, setUsername] = useState('');
-    const [password, setPassword] = useState('');
-    const [message, setMessage] = useState('');
+const Register = ({ setUsername }) => {
+  const [username, setUsernameInput] = useState('');
+  const [password, setPassword] = useState('');
+  const navigate = useNavigate();
 
-    const handleSubmit = (e) => {
-        e.preventDefault();
-        fetch('http://localhost:5289/api/auth/register', { // Updated URL
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ username, password })
-        })
-        .then(response => {
-            if (response.ok) {
-                return response.json();
-            } else if (response.status === 400) {
-                throw new Error('User already registered');
-            } else {
-                throw new Error('An error occurred');
-            }
-        })
-        .then(data => {
-            setMessage('New user registered.');
-        })
-        .catch(error => {
-            setMessage(error.message);
-        });
-    };
+  const handleRegister = (e) => {
+    e.preventDefault();
+    // Simple registration logic for demonstration purposes
+    if (username && password) {
+      setUsername(username);
+      localStorage.setItem('loggedInUser', username);
+      // Save to local storage to simulate registration
+      localStorage.setItem(`account_${username}`, JSON.stringify({ username, checking: 1000, savings: 2000 }));
+      navigate('/account');
+    }
+  };
 
-    return (
-        <div>
-            <form onSubmit={handleSubmit}>
-                <div>
-                    <label>Username:</label>
-                    <input type="text" value={username} onChange={(e) => setUsername(e.target.value)} />
-                </div>
-                <div>
-                    <label>Password:</label>
-                    <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} />
-                </div>
-                <button type="submit">Register</button>
-            </form>
-            <p>{message}</p>
-            <p>Already have an account? <Link to="/login">Login here</Link></p>
-        </div>
-    );
+  return (
+    <div className="auth-container">
+      <form className="auth-form" onSubmit={handleRegister}>
+        <h2>Register</h2>
+        <input 
+          type="text" 
+          value={username} 
+          onChange={(e) => setUsernameInput(e.target.value)} 
+          placeholder="Username" 
+          required 
+        />
+        <input 
+          type="password" 
+          value={password} 
+          onChange={(e) => setPassword(e.target.value)} 
+          placeholder="Password" 
+          required 
+        />
+        <button type="submit">Register</button>
+        <p>
+          Already have an account? <Link to="/login">Login here</Link>
+        </p>
+      </form>
+    </div>
+  );
 };
 
 export default Register;

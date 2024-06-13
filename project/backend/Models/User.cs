@@ -5,6 +5,8 @@ public class User
     [Key]
     public int Id { get; set; }
     public string Username { get; set; }
-    public string PasswordHash { get; set; }
-    public byte[] PasswordSalt { get; set; } // Add this line
+    public byte[] PasswordHash { get; set; }
+    public byte[] PasswordSalt { get; set; }
+    public decimal Checking { get; set; } // Add Checking property
+    public decimal Savings { get; set; } // Add Savings property
 }

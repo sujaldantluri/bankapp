@@ -1,14 +1,11 @@
 using Microsoft.EntityFrameworkCore;
-using MyBankApp.Models; // Adjust namespace as needed
+using MyBankApp.Models;
 
 namespace MyBankApp.Data
 {
     public class ApplicationDbContext : DbContext
     {
-        public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
-            : base(options)
-        {
-        }
+        public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options) : base(options) { }
 
         public DbSet<User> Users { get; set; }
     }
