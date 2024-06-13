@@ -1,21 +1,25 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import './Login.css'; // Reusing the same styles as Login for consistency
+import axios from 'axios';
+import './Login.css'; // Ensure this import is present
 
 const Register = ({ setUsername }) => {
   const [username, setUsernameInput] = useState('');
   const [password, setPassword] = useState('');
   const navigate = useNavigate();
 
-  const handleRegister = (e) => {
+  const handleRegister = async (e) => {
     e.preventDefault();
-    // Simple registration logic for demonstration purposes
-    if (username && password) {
-      setUsername(username);
-      localStorage.setItem('loggedInUser', username);
-      // Save to local storage to simulate registration
-      localStorage.setItem(`account_${username}`, JSON.stringify({ username, checking: 1000, savings: 2000 }));
-      navigate('/account');
+    try {
+      const response = await axios.post('http://localhost:5289/api/auth/register', { username, password });
+      if (response.data) {
+        setUsername(username);
+        localStorage.setItem('loggedInUser', username);
+        navigate('/account');
+      }
+    } catch (error) {
+      console.error('Error registering user:', error);
+      alert('Registration failed. Please try again.');
     }
   };
 
